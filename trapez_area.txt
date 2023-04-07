@@ -1,0 +1,7 @@
+function  x_tend = trapez_area(xm, ym, xseq, yseq, xr)
+          a=[];
+          for i = 1:size(xseq,2)
+            a(i) = 0.5 * (ym - yseq(i)) * ((2*xr) - xseq(i) - xm);           
+          end
+          x_tend = find(a==max(a))+xm-1;
+end

@@ -1,0 +1,99 @@
+ clc;
+clear;
+main_path = 'D:\paper2\paper3\心脏周期（代码）';
+rr_path = 'RR';
+mark_path = 'mark';
+behav_path = 'behavior';
+ecg_path = 'amp_clean';
+r_tpath = 'R_T';
+file = {'guangzhou','xizang'};
+  fs = 200;
+ for i = 1:length(file)
+     filert = dir(fullfile(main_path,r_tpath,file{i}));
+     for j = 3:length(filert)
+         sys_dys=[];
+%          rt = load(fullfile(main_path,r_tpath,file{i},filert(j).name));
+         rt = load(fullfile(main_path,r_tpath,'xizang',filert(j).name));
+         rt = rt(:,1)-39;%time delay 39 sampling
+%          rt = rt(:,1)*200*60-39;%time delay 39 sampling
+         sub = filert(j).name(1:length(filert(j).name)-4);
+         mark = xlsread(fullfile(main_path,mark_path,file{i},[sub,'.xlsx']));
+         data_delay = load(fullfile(main_path,ecg_path,file{i},filert(j).name));
+         data = data_delay(1:size(data_delay,1));
+         behave = load(fullfile(main_path,behav_path,file{i},['stor_var',sub,'.mat']));
+         for h = 1:size(mark,1)/2        
+            R_near = max(find(rt(:,1)/(60*fs)<(mark(h*2-1,1))));
+            ecgpos1 =  rt(R_near,1);
+            RRint = rt(R_near+1)-rt(R_near);
+            plot(rt(R_near):rt(R_near+1),data(rt(R_near):rt(R_near+1)),'k')
+            ecgpos2 = ecgpos1+RRint-12;
+            %twave = data(ecgpos1+28:ecgpos2,:);          
+            twave = data(ecgpos1+28:ecgpos2,:);  
+%              hold on
+%              plot(ecgpos1+28:ecgpos2,twave,'r')
+             if (RRint-28)/3 <= size(twave,1) % from xizang 4.mat start
+             tmaxpos = find(twave(1:((RRint-28)/3),1)==max(twave(1:((RRint-28)/3),1)));
+             c=0;
+             else
+             tmaxpos = find(twave(1:size(twave,1),1)==max(twave(1:size(twave,1),1)));  
+             c=1;
+             end
+            twave2 = twave(tmaxpos:size(twave,1),:);
+              hold on
+              plot(ecgpos1+28+tmaxpos-1:ecgpos2,twave2,'g')
+            dp = 0.12*fs;
+            if dp > size(twave,1)
+                xm = find(diff(twave2(:,1))==min(diff(twave2(:,1))));
+            else
+                if dp < length(twave2)
+                xm = find(diff(twave2(1:dp,1))==min(diff(twave2(1:dp,1))));
+                a=0;
+                else
+                xm = find(diff(twave2(1:length(twave2),1))==min(diff(twave2(1:length(twave2),1))));
+                a=1;
+                end
+            end
+            ym = twave2(xm,1);
+            xr = 16+xm;          
+            if xr > length(twave2)
+                xr = length(twave2);
+                b=0;
+            else
+                xr = xr;
+                b=1;
+            end
+            xseq = xm:xr;
+            yseq = twave2(xm:xr,1);
+            x_tend = trapez_area(xm, ym, xseq, yseq, xr);
+            nextR=rt(R_near+1)-0.8;
+            syslen = 28+tmaxpos+x_tend;
+            sys_dp = ecgpos1:ecgpos1+syslen-1;
+            hold on 
+            plot(ecgpos1:ecgpos1+28+tmaxpos+x_tend,data(ecgpos1:ecgpos1+28+tmaxpos+x_tend),'b')
+            hold on 
+            plot(rt(R_near+1)-syslen:rt(R_near+1),data(rt(R_near+1)-syslen:rt(R_near+1)),'r')
+            dias_dp = (nextR-syslen):(nextR-0.08);
+            %diastole_ecg=data(diastole_dp,:);
+            if (mark(h*2-1,1))*60*fs <= ecgpos1+syslen-1
+               sys_dys(h,1) = behave.stor_var{h+1,6};
+               sys_dys(h,2) = 1;
+            else
+               if ecgpos1+syslen-1 < nextR-syslen && (mark(h*2-1,1))*60*fs < nextR-syslen
+               sys_dys(h,1) = behave.stor_var{h+1,6};
+               sys_dys(h,2) = 2;
+               elseif ecgpos1+syslen-1 >= nextR-syslen || (mark(h*2-1,1))*60*fs >= nextR-syslen
+               sys_dys(h,1) = behave.stor_var{h+1,6};
+               sys_dys(h,2) = 3;
+               end         
+            end 
+            sys_dys(h,3)= syslen/RRint;
+            sys_dys(h,4)= syslen;
+            sys_dys(h,5)= RRint;  
+            sys_dys(h,6)= a;
+            sys_dys(h,7)= b;
+            sys_dys(h,8)= c;    
+         end
+         savepath=fullfile(main_path,'cardic2',[sub,'.mat']);
+         save(savepath,'sys_dys')
+    end
+ end

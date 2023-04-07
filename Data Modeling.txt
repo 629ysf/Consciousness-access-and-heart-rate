@@ -1,0 +1,23 @@
+import pandas as pd
+import numpy as np
+import hddm
+from scipy import stats
+import seaborn as sns
+import matplotlib.pyplot as plt
+import pymc
+import kabuki
+
+data = hddm.load_csv('rtgz.csv')
+#data = hddm.utils.flip_errors(data)
+fig = plt.figure()
+ax = fig.add_subplot(111, xlabel='RT', ylabel='count', title='RT distributions')
+for i, subj_data in data.groupby('subj_idx'):
+    subj_data.rt.hist(bins=20, histtype='step', ax=ax)
+
+datana=data.dropna(axis=0,how='any')
+m_exp = hddm.HDDM(datana)
+m_exp.find_starting_values()
+m_exp.sample(10000, burn=1000)
+
+stats_exp = m_exp.gen_stats()
+stats_exp.to_csv('stats_gz.csv') 

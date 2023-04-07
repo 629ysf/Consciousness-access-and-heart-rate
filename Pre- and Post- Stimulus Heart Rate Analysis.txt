@@ -1,0 +1,56 @@
+clear;
+clc;
+mainfile = 'mainfile_path';
+file = dir(fullfile(mainfile,'qrs_path'));
+filevent = dir(fullfile(mainfile,'rt_path'));
+
+for i = 1:length(file)
+    rr=[];
+    a = 1;
+    data = load(fullfile(mainfile,'qrs_data_path'));
+    sub = file(i,1).name(1:length(file(i,1).name)-4);
+    load([mainfile,'rt_data_path']);
+    load([mainfile,'event_data_path']);
+    lung = length(trg);
+    d = 1;
+    e = 1;
+    for h = 2:size(stor_var,1)
+    if  strcmp(stor_var{h,5},'CORRECT')==1
+        d=d+1;
+    elseif strcmp(stor_var{h,5},'WRONG')==1
+        e=e+1;
+    end
+    end
+    b = 1;
+    for j = 2:length(stor_var)
+        if d > e && strcmp(stor_var{j,5},'CORRECT')==1
+            trg(b,2)= stor_var{j,6};
+            b= b+1;
+        elseif d <= e && strcmp(stor_var{j,5},'WRONG')==1
+            trg(b,2)= stor_var{j,6};
+            b= b+1;
+        end
+    end
+    for h = 1:lung        
+         R_near = max(find(data(:,1)<trg(h,1)));
+         if (R_near+4) < length(data) && 0 <(R_near-3)
+              rr(a,1) = data(R_near-2)-data(R_near-3);
+              rr(a,2) = data(R_near-1)-data(R_near-2);
+              rr(a,3) = data(R_near)-data(R_near-1);
+              rr(a,4) = data(R_near+1)-data(R_near);
+              rr(a,5) = data(R_near+2)-data(R_near+1);
+              rr(a,6) = data(R_near+3)-data(R_near+2);
+              rr(a,7) = trg(h,2);
+              rr(a,8) = log10(trg(h,2));
+              rr(a,9) = str2num(sub);
+              a = a+1;
+        end
+    end
+    rrm(i-2,1) = mean(rr(:,1));
+    rrm(i-2,2) = mean(rr(:,2));
+    rrm(i-2,3) = mean(rr(:,3));
+    rrm(i-2,4) = mean(rr(:,4));
+    rrm(i-2,5) = mean(rr(:,5));
+    rrm(i-2,6) = mean(rr(:,6));
+    rrm(i-2,7) = str2num(sub);
+end
