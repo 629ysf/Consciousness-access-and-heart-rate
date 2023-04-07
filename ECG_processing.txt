@@ -1,0 +1,35 @@
+clear;
+clc；
+mainpath = 'mainpath';
+results = [];
+filenum = dir(mainpath);
+for j = 3:length(filenum)
+    mat_folder = fullfile(mainpath,filenum(j,1).name);
+    load(mat_folder) 
+    ECGraw=acq.data(1:end,1); 
+    raw_f = 1000; 
+    fs = 200;
+    ECGdesample = resample(ECGraw,fs,raw_f);
+    [c,l,d1,d2,d3,d4,d5,d6,d7,ECGclean]=wavelettransform7(ECGdesample);% wavelet transform and noise removal
+    gr = 0;
+    RR = [];
+    [qrs_amp_raw,qrs_i_raw,delay,ecg_filter] = PT_algorithm(ECGclean,fs,gr);
+    f1=0.5; %cuttoff low frequency to get rid of baseline wander
+    f2=35; %cuttoff frequency to discard high frequency noise
+    Wn=[f1 f2]*2/fs; % cutt off based on fs
+     N = 3; % order of 3 less processing
+    [a,b] = butter(N,Wn); %bandpass filtering
+    ecg_lh = filtfilt(a,b,ECGclean);
+    ecg_lh = ecg_lh/ max(abs(ecg_lh));
+    [pks,locs]=findpeaks(ecg_lh,'MINPEAKHEIGHT',0.01,'MINPEAKDISTANCE',round(0.5*fs));
+    RR = zRR(diff(qrs_i_raw),fs);
+    rr=RR';
+    qrs=qrs_i_raw';
+    savefile = [filenum(j,1).name(1:length(filenum(j,1).name)-4),'.txt'];
+    savepath = fullfile('D:\paper2\paper3\心脏周期（代码）', 'RR',savefile);
+    save(savepath,'rr','-ascii'); 
+    savepath2 = fullfile('D:\paper2\paper3\心脏周期（代码）', 'R_T',savefile);
+    save(savepath2,'qrs','-ascii'); 
+    savepath3 = fullfile('D:\paper2\paper3\心脏周期（代码）', 'amp_clean',savefile);
+    save(savepath3,'ecg_filter','-ascii'); 
+end
